@@ -1,0 +1,36 @@
+name: Trivy
+on:
+  push:
+    branches:
+    - main
+  pull_request:
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-24.04
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run Trivy vulnerability scanner in fs mode
+      uses: aquasecurity/trivy-action@v0.36.0
+      with:
+        scan-type: 'fs'
+        scan-ref: '.'
+        scanners: vuln,secret,misconfig,license
+        trivy-config: trivy.yaml
+        output: trivy.txt
+
+    - name: Publish Trivy Output to Summary
+      run: |
+        if [[ -s trivy.txt ]]; then
+          {
+            echo "### Security Output"
+            echo "<details><summary>Click to expand</summary>"
+            echo ""
+            echo '```terraform'
+            cat trivy.txt
+            echo '```'
+            echo "</details>"
+          } >> $GITHUB_STEP_SUMMARY
+        fi

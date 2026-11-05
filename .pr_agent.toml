@@ -1,0 +1,10 @@
+[config] # in configuration.toml
+model="openrouter/nvidia/nemotron-3.5-lightning:free"
+fallback_models=[""]
+custom_model_max_tokens=20000
+response_language = "Japanese"
+
+[pr_reviewer]
+extra_instructions="""\
+日本語で記載お願いします
+"""
