@@ -36,13 +36,26 @@ const TIME_SLOTS = [
   '21:00',
 ]
 
+// Japanese phone number regex pattern:
+ // Matches formats like: 090-1234-5678, 080-1234-5678, 070-1234-5678
+ // or without dashes: 09012345678, 08012345678
+const PHONE_REGEX = /^(0\d{2}|0\d{3})-\d{4}-\d{4}$|^(0\d{2,3})\d{4}\d{4}$/
+
+function validatePhoneNumber(phone: string): boolean {
+  // Allow empty phone numbers (will be checked as required separately)
+  if (phone.trim().length === 0) {
+    return true
+  }
+  return PHONE_REGEX.test(phone)
+}
+
 function validateReservation(form: typeof initialForm) {
   return (
     form.date &&
     form.time &&
     form.partySize > 0 &&
     form.name.trim().length > 0 &&
-    form.phone.trim().length > 0
+    validatePhoneNumber(form.phone)
   )
 }
 
@@ -93,7 +106,11 @@ export default function App() {
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
     if (!validateReservation(form)) {
-      setError('全ての必須項目を入力してください。')
+      if (!validatePhoneNumber(form.phone)) {
+        setError('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678')
+      } else {
+        setError('全ての必須項目を入力してください。')
+      }
       return
     }
     const newReservation: Reservation = {
