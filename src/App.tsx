@@ -49,14 +49,26 @@ function validatePhoneNumber(phone: string): boolean {
   return PHONE_REGEX.test(phone)
 }
 
-function validateReservation(form: typeof initialForm) {
-  return (
-    form.date &&
-    form.time &&
-    form.partySize > 0 &&
-    form.name.trim().length > 0 &&
-    validatePhoneNumber(form.phone)
-  )
+function getReservationErrors(form: typeof initialForm): string | null {
+  const errors: string[] = []
+
+  if (!form.date) {
+    errors.push('日付を入力してください。')
+  }
+  if (!form.time) {
+    errors.push('時間を選択してください。')
+  }
+  if (form.partySize <= 0 || !form.partySize) {
+    errors.push('人数を入力してください。')
+  }
+  if (form.name.trim().length === 0) {
+    errors.push('名前を入力してください。')
+  }
+  if (!validatePhoneNumber(form.phone)) {
+    errors.push('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678')
+  }
+
+  return errors.length > 0 ? errors.join('<br />') : null
 }
 
 const initialForm = {
@@ -105,12 +117,9 @@ export default function App() {
   // Handle reservation submission
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    if (!validateReservation(form)) {
-      if (!validatePhoneNumber(form.phone)) {
-        setError('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678')
-      } else {
-        setError('全ての必須項目を入力してください。')
-      }
+    const errors = getReservationErrors(form)
+    if (errors) {
+      setError(errors)
       return
     }
     const newReservation: Reservation = {
@@ -181,9 +190,14 @@ export default function App() {
                   id="date"
                   value={form.date}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
+                    errors?.includes('日付を入力してください。') ? 'border-red-500' : ''
+                  }"
                   required
                 />
+                {errors?.includes('日付を入力してください。') && (
+                  <p className="text-error text-xs mt-1">{errors.split('<br />')[0]}</p>
+                )}
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1" htmlFor="time">
@@ -194,7 +208,9 @@ export default function App() {
                   id="time"
                   value={form.time}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
+                    errors?.includes('時間を選択してください。') ? 'border-red-500' : ''
+                  }"
                   required
                 >
                   {TIME_SLOTS.map((slot) => (
@@ -203,6 +219,9 @@ export default function App() {
                     </option>
                   ))}
                 </select>
+                {errors?.includes('時間を選択してください。') && (
+                  <p className="text-error text-xs mt-1">{errors.split('<br />')[1]}</p>
+                )}
               </div>
             </div>
             <div className="flex gap-4">
@@ -218,9 +237,14 @@ export default function App() {
                   max={20}
                   value={form.partySize}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
+                    errors?.includes('人数を入力してください。') ? 'border-red-500' : ''
+                  }"
                   required
                 />
+                {errors?.includes('人数を入力してください。') && (
+                  <p className="text-error text-xs mt-1">{errors.split('<br />')[2]}</p>
+                )}
               </div>
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1" htmlFor="name">
@@ -232,9 +256,14 @@ export default function App() {
                   id="name"
                   value={form.name}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
+                    errors?.includes('名前を入力してください。') ? 'border-red-500' : ''
+                  }"
                   required
                 />
+                {errors?.includes('名前を入力してください。') && (
+                  <p className="text-error text-xs mt-1">{errors.split('<br />')[3]}</p>
+                )}
               </div>
             </div>
             <div>
@@ -247,9 +276,14 @@ export default function App() {
                 id="phone"
                 value={form.phone}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
+                  errors?.includes('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678') ? 'border-red-500' : ''
+                }"
                 required
               />
+              {errors?.includes('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678') && (
+                <p className="text-error text-xs mt-1">{errors.split('<br />')[4]}</p>
+              )}
             </div>
             <div>
               <label className="block text-sm font-medium mb-1" htmlFor="note">
