@@ -49,26 +49,35 @@ function validatePhoneNumber(phone: string): boolean {
   return PHONE_REGEX.test(phone)
 }
 
-function getReservationErrors(form: typeof initialForm): string | null {
-  const errors: string[] = []
+type FieldName = 'date' | 'time' | 'partySize' | 'name' | 'phone'
+type FieldErrors = Partial<Record<FieldName, string>>
+
+function getReservationErrors(form: typeof initialForm): FieldErrors {
+  const errors: FieldErrors = {}
 
   if (!form.date) {
-    errors.push('日付を入力してください。')
+    errors.date = '日付を入力してください。'
   }
   if (!form.time) {
-    errors.push('時間を選択してください。')
+    errors.time = '時間を選択してください。'
   }
   if (form.partySize <= 0 || !form.partySize) {
-    errors.push('人数を入力してください。')
+    errors.partySize = '人数を入力してください。'
   }
   if (form.name.trim().length === 0) {
-    errors.push('名前を入力してください。')
+    errors.name = '名前を入力してください。'
   }
   if (!validatePhoneNumber(form.phone)) {
-    errors.push('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678')
+    errors.phone = '有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678'
   }
 
-  return errors.length > 0 ? errors.join('<br />') : null
+  return errors
+}
+
+function inputClass(hasError: boolean): string {
+  return `w-full rounded-xl border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary ${
+    hasError ? 'border-error' : 'border-border'
+  }`
 }
 
 const initialForm = {
@@ -85,7 +94,8 @@ export default function App() {
   const [view, setView] = useState<'form' | 'list'>('form')
   const [form, setForm] = useState(initialForm)
   const [saved, setSaved] = useState(false)
-  const [error, setError] = useState<string | null>(null)
+  const [errors, setErrors] = useState<FieldErrors>({})
+  const hasErrors = Object.keys(errors).length > 0
 
   // Load reservations from localStorage
   useEffect(() => {
@@ -111,15 +121,21 @@ export default function App() {
       ...prev,
       [name]: name === 'partySize' ? Number(value) : value,
     }))
-    setError(null)
+    // Clear only the error of the field being edited
+    setErrors((prev) => {
+      if (!(name in prev)) return prev
+      const next = { ...prev }
+      delete next[name as FieldName]
+      return next
+    })
   }
 
   // Handle reservation submission
   function handleSubmit(e: FormEvent) {
     e.preventDefault()
-    const errors = getReservationErrors(form)
-    if (errors) {
-      setError(errors)
+    const nextErrors = getReservationErrors(form)
+    if (Object.keys(nextErrors).length > 0) {
+      setErrors(nextErrors)
       return
     }
     const newReservation: Reservation = {
@@ -130,7 +146,7 @@ export default function App() {
     setReservations((prev) => [newReservation, ...prev])
     setForm(initialForm)
     setSaved(true)
-    setError(null)
+    setErrors({})
     setTimeout(() => setSaved(false), 1500)
   }
 
@@ -178,7 +194,7 @@ export default function App() {
       {/* Main Content */}
       <main className="w-full max-w-xl bg-surface rounded-xl shadow-lg p-6">
         {view === 'form' ? (
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} noValidate className="space-y-4">
             <div className="flex gap-4">
               <div className="flex-1">
                 <label className="block text-sm font-medium mb-1" htmlFor="date">
@@ -190,13 +206,12 @@ export default function App() {
                   id="date"
                   value={form.date}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
-                    errors?.includes('日付を入力してください。') ? 'border-red-500' : ''
-                  }"
+                  className={inputClass(!!errors.date)}
+                  aria-invalid={!!errors.date}
                   required
                 />
-                {errors?.includes('日付を入力してください。') && (
-                  <p className="text-error text-xs mt-1">{errors.split('<br />')[0]}</p>
+                {errors.date && (
+                  <p className="text-error text-xs mt-1">{errors.date}</p>
                 )}
               </div>
               <div className="flex-1">
@@ -208,9 +223,8 @@ export default function App() {
                   id="time"
                   value={form.time}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
-                    errors?.includes('時間を選択してください。') ? 'border-red-500' : ''
-                  }"
+                  className={inputClass(!!errors.time)}
+                  aria-invalid={!!errors.time}
                   required
                 >
                   {TIME_SLOTS.map((slot) => (
@@ -219,8 +233,8 @@ export default function App() {
                     </option>
                   ))}
                 </select>
-                {errors?.includes('時間を選択してください。') && (
-                  <p className="text-error text-xs mt-1">{errors.split('<br />')[1]}</p>
+                {errors.time && (
+                  <p className="text-error text-xs mt-1">{errors.time}</p>
                 )}
               </div>
             </div>
@@ -237,13 +251,12 @@ export default function App() {
                   max={20}
                   value={form.partySize}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
-                    errors?.includes('人数を入力してください。') ? 'border-red-500' : ''
-                  }"
+                  className={inputClass(!!errors.partySize)}
+                  aria-invalid={!!errors.partySize}
                   required
                 />
-                {errors?.includes('人数を入力してください。') && (
-                  <p className="text-error text-xs mt-1">{errors.split('<br />')[2]}</p>
+                {errors.partySize && (
+                  <p className="text-error text-xs mt-1">{errors.partySize}</p>
                 )}
               </div>
               <div className="flex-1">
@@ -256,13 +269,12 @@ export default function App() {
                   id="name"
                   value={form.name}
                   onChange={handleChange}
-                  className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
-                    errors?.includes('名前を入力してください。') ? 'border-red-500' : ''
-                  }"
+                  className={inputClass(!!errors.name)}
+                  aria-invalid={!!errors.name}
                   required
                 />
-                {errors?.includes('名前を入力してください。') && (
-                  <p className="text-error text-xs mt-1">{errors.split('<br />')[3]}</p>
+                {errors.name && (
+                  <p className="text-error text-xs mt-1">{errors.name}</p>
                 )}
               </div>
             </div>
@@ -276,13 +288,12 @@ export default function App() {
                 id="phone"
                 value={form.phone}
                 onChange={handleChange}
-                className="w-full rounded-xl border border-border bg-background text-text px-3 py-2 focus:outline-none focus:ring-2 focus:ring-primary${
-                  errors?.includes('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678') ? 'border-red-500' : ''
-                }"
+                className={inputClass(!!errors.phone)}
+                aria-invalid={!!errors.phone}
                 required
               />
-              {errors?.includes('有効な電話番号を入力してください。形式: 090-1234-5678 または 09012345678') && (
-                <p className="text-error text-xs mt-1">{errors.split('<br />')[4]}</p>
+              {errors.phone && (
+                <p className="text-error text-xs mt-1">{errors.phone}</p>
               )}
             </div>
             <div>
@@ -299,8 +310,10 @@ export default function App() {
                 placeholder="ご要望など"
               />
             </div>
-            {error && (
-              <div className="text-error text-sm font-semibold">{error}</div>
+            {hasErrors && (
+              <div className="text-error text-sm font-semibold" role="alert">
+                入力内容を確認してください。
+              </div>
             )}
             <button
               type="submit"
